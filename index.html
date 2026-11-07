@@ -1,0 +1,229 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Aircraft Weight & Mission Fuel Planner / مخطط وزن الطائرة ووقود المهمة</title>
+<style>
+:root{--bg:#eef3f8;--card:#fff;--ink:#172338;--muted:#64748b;--line:#dce5ef;--blue:#1769e0;--navy:#102b50;--green:#087f5b;--red:#b42318;--amber:#9a6700}
+*{box-sizing:border-box}body{margin:0;background:linear-gradient(145deg,#eaf2fb,#f7f9fc);font-family:Arial,sans-serif;color:var(--ink);min-height:100vh;padding:28px 16px}
+main{max-width:1050px;margin:auto}.top{background:linear-gradient(120deg,#102b50,#1769e0);color:white;padding:28px;border-radius:20px 20px 0 0}
+.top h1{margin:0 0 8px;font-size:clamp(24px,4vw,34px)}.top p{margin:0;color:#dbeafe}
+.card{background:var(--card);padding:26px;border:1px solid var(--line);border-top:0;border-radius:0 0 20px 20px;box-shadow:0 16px 40px #18365b12}
+.section{margin-top:24px;padding-top:20px;border-top:1px solid var(--line)}.section h2{font-size:19px;margin:0 0 15px;color:var(--navy)}
+.grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:18px}.field{display:flex;flex-direction:column;gap:8px;min-width:0}.field label{font-weight:700;font-size:14px}
+input,select{width:100%;padding:12px 13px;border:1px solid #cbd5e1;border-radius:10px;background:#fff;color:var(--ink);font-size:15px;outline:none}
+input:focus,select:focus{border-color:var(--blue);box-shadow:0 0 0 3px #1769e020}
+.hint{font-size:12px;color:var(--muted);line-height:1.5}.aircraft-weight{background:#f1f6fd;border:1px solid #d7e6fa;border-radius:10px;padding:13px 14px;font-weight:700;color:#174a89;min-height:45px}
+.coords{display:grid;grid-template-columns:1fr 1fr auto;gap:10px;align-items:end;margin:10px 0}.coord-title{font-size:13px;font-weight:bold;color:#475569;margin-bottom:5px}
+button{border:0;border-radius:10px;padding:11px 16px;font-weight:700;font-size:14px;cursor:pointer}.add{background:#e8f1ff;color:#1456a0}.remove{background:#fff0ef;color:var(--red);padding:11px 13px}.reset{background:#e8eef6;color:#26364b}.print{background:var(--blue);color:white}
+.results{margin-top:24px;background:#f7fafc;border:1px solid var(--line);border-radius:16px;padding:20px}.results h2{margin:0 0 15px;font-size:19px}.result-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+.result{background:white;border:1px solid var(--line);border-radius:12px;padding:15px;min-width:0}.result small{display:block;color:var(--muted);margin-bottom:8px}.result strong{font-size:clamp(20px,3vw,29px);font-variant-numeric:tabular-nums;overflow-wrap:anywhere}.result.primary{background:#eaf2ff;border-color:#c7dcff}.result.primary strong{color:#1257bd}
+.breakdown{margin-top:16px;color:#475569;font-size:14px;line-height:1.85}.status{padding:12px 14px;border-radius:10px;margin-top:14px;font-weight:bold;font-size:14px;line-height:1.6}.status.ok{background:#e8f7ef;color:#086443;border:1px solid #b8e5cd}.status.warn{background:#fff6e5;color:#805600;border:1px solid #f0d28c}.status.bad{background:#fff0ef;color:#a32219;border:1px solid #f0c1bd}
+.notice{background:#fff8e8;border:1px solid #f0d28c;border-radius:12px;padding:14px;color:#694b00;font-size:12px;line-height:1.65;margin-top:18px}
+.actions{display:flex;gap:10px;flex-wrap:wrap;margin-top:18px}.footer{margin-top:18px;color:var(--muted);font-size:12px;line-height:1.6}
+@media(max-width:620px){body{padding:12px 10px}.top,.card{padding:20px}.grid,.result-grid{grid-template-columns:1fr}.coords{grid-template-columns:1fr 1fr}.coords .remove{grid-column:1/-1}}
+@media print{body{background:white;padding:0}.top{border-radius:0}.card{box-shadow:none}.actions,.add,.remove{display:none!important}}
+</style>
+
+<link rel="manifest" href="./manifest.webmanifest">
+<meta name="theme-color" content="#102b50">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="Aircraft Planner">
+<link rel="apple-touch-icon" href="./icons/icon-192.png">
+
+</head>
+<body>
+<main>
+<header class="top">
+<h1>Aircraft Weight & Mission Fuel Planner / مخطط وزن الطائرة ووقود المهمة</h1>
+<p>Offline calculator · حاسبة أوزان الطائرات وتخطيط زمن المهمة</p>
+</header>
+<section class="card">
+<div class="section" style="margin-top:0;padding-top:0;border-top:0">
+<h2>1. Aircraft & Weight / الطائرة والوزن</h2>
+<div class="grid">
+<div class="field"><label for="aircraft">Select the A/C No. / اختر رقم الطائرة</label><select id="aircraft"><option value="">Choose aircraft number</option></select><div class="hint">Aircraft empty weight is loaded from the supplied aircraft weight data. / يتم تحميل وزن الطائرة فارغة من بيانات الأوزان المُدخلة.</div></div>
+<div class="field"><label>Aircraft Weight / وزن الطائرة</label><div class="aircraft-weight" id="aircraftWeight">— kg</div></div>
+<div class="field"><label for="fuel">Fuel amount at takeoff / كمية الوقود عند الإقلاع</label><input id="fuel" type="number" min="0" step="any" placeholder="Enter fuel amount"><div class="hint">Enter the planned fuel quantity at takeoff. / أدخل كمية الوقود المخطط وجودها عند الإقلاع.</div></div>
+<div class="field"><label for="fuelUnit">Fuel unit / وحدة قياس الوقود</label><select id="fuelUnit"><option value="liters">Liters (L)</option><option value="kg">Kilograms (kg)</option></select><div class="hint">Fuel density used for conversion: 0.76 kg/L. / كثافة الوقود المستخدمة للتحويل: 0.76 كجم/لتر.</div></div>
+<div class="field"><label for="extra">Select additional item / اختر حمولة إضافية</label><select id="extra"><option value="0">None — 0 kg</option><option value="57">BA — 57 kg</option><option value="58">TL — 58 kg</option><option value="21">L of (TL) — 21 kg</option><option value="11">L of BA — 11 kg</option></select></div>
+<div class="field"><label>Conversion factor / معامل التحويل</label><div class="aircraft-weight">1 kg = 2.205 lb / 1 كجم = 2.205 رطل</div></div>
+</div>
+</div>
+
+<div class="section">
+<h2>2. Departure & Return Airport / مطار الإقلاع والعودة</h2>
+<div class="grid">
+<div class="field"><label for="airport">Select departure airport (return to same airport) / اختر مطار الإقلاع (والعودة إلى نفس المطار)</label><select id="airport">
+<option value="siwa">Siwa Airport / مطار سيوة</option>
+<option value="miliz">Al-Milize Airport / مطار المليز</option>
+<option value="owainat">East Oweinat Airport / مطار شرق العوينات</option>
+</select><div class="hint" id="airportCoords"></div></div>
+<div class="field"><label>Maximum Takeoff Weight / أقصى وزن للإقلاع</label><div class="aircraft-weight" id="mtow">1190 kg</div><div class="hint">Airport-specific limit supplied by the user. / الحد الأقصى الخاص بالمطار وفق البيانات المُدخلة.</div></div>
+</div>
+</div>
+
+<div class="section">
+<h2>3. Work Area Coordinates / إحداثيات منطقة العمل</h2>
+<div class="hint">Add one or more waypoints in the order you plan to visit them. Coordinates may be entered as decimal degrees or degrees/minutes/seconds, e.g. N 29 33 54.1 and E 025 35 58.3. / أضف نقطة إحداثية واحدة أو أكثر حسب ترتيب زيارتها. يمكن إدخال الإحداثيات بالدرجات العشرية أو بالدرجات والدقائق والثواني، مثال: N 29 33 54.1 و E 025 35 58.3.</div>
+<div id="waypoints"></div>
+<button class="add" type="button" id="addPoint">+ Add another coordinate / إضافة إحداثي آخر</button>
+</div>
+
+<div class="section">
+<h2>4. Flight Planning Inputs / بيانات حساب الرحلة</h2>
+<div class="grid">
+<div class="field"><label for="speed">Aircraft speed (KNOTS) / سرعة الطائرة (عقدة)</label><input id="speed" type="number" min="1" step="any" value="78"><div class="hint">Default speed: 78 knots, as provided. / السرعة الافتراضية: 78 عقدة، وفق البيانات المُدخلة.</div></div>
+<div class="field"><label for="burn">Fuel consumption (L/hour) / استهلاك الوقود (لتر/ساعة)</label><input id="burn" type="number" min="0.1" step="any" value="20"><div class="hint">Required to estimate fuel used and available working time. Use the approved aircraft data. / تُستخدم لتقدير الوقود المستهلك وزمن العمل المتاح. استخدم بيانات الطائرة المعتمدة.</div></div>
+<div class="field"><label for="takeoffFuel">Takeoff fuel consumption (L) / وقود عملية الإقلاع (لتر)</label><input id="takeoffFuel" type="number" min="0" step="any" value="30"><div class="hint">Fixed fuel allowance deducted once for the takeoff operation. / كمية وقود ثابتة تُخصم مرة واحدة مقابل عملية الإقلاع.</div></div>
+<div class="field"><label for="reserve">Required fuel at airport overhead (L) / الوقود المطلوب عند الوصول فوق المطار (لتر)</label><input id="reserve" type="number" min="0" step="any" value="50"><div class="hint">Target remaining fuel when overhead the departure/return airport. / كمية الوقود المستهدفة المتبقية عند الوصول فوق مطار الإقلاع والعودة.</div></div>
+</div>
+</div>
+
+<section class="results" aria-live="polite">
+<h2>5. Weight Results / نتائج الوزن</h2>
+<div class="result-grid">
+<div class="result"><small>Total weight (KG) / الوزن الإجمالي (كجم)</small><strong id="totalKg">—</strong></div>
+<div class="result primary"><small>Total weight (POUND) / الوزن الإجمالي (رطل)</small><strong id="totalLb">—</strong></div>
+<div class="result"><small>Airport MTOW / أقصى وزن إقلاع للمطار</small><strong id="mtowResult">1190 kg</strong></div>
+<div class="result"><small>Weight margin / هامش الوزن المتبقي</small><strong id="margin">—</strong></div>
+</div>
+<div id="weightStatus" class="status warn">Select aircraft and enter fuel to check weight. / اختر الطائرة وأدخل كمية الوقود للتحقق من الوزن.</div>
+<div class="breakdown" id="weightBreakdown"></div>
+</section>
+
+<section class="results" aria-live="polite">
+<h2>6. Mission Time & Fuel Estimate / زمن المهمة والوقود</h2>
+<div class="result-grid">
+<div class="result"><small>Outbound distance / time / مسافة وزمن الذهاب</small><strong id="outbound">—</strong></div>
+<div class="result"><small>Return distance / time / مسافة وزمن العودة</small><strong id="return">—</strong></div>
+<div class="result"><small>Between work points / المسافة والزمن بين نقاط العمل</small><strong id="workTransit">—</strong></div>
+<div class="result"><small>Total estimated flight time / إجمالي زمن الطيران التقديري</small><strong id="totalTime">—</strong></div>
+<div class="result"><small>Estimated transit fuel / الوقود التقديري للانتقال</small><strong id="transitFuel">—</strong></div>
+<div class="result primary"><small>Available time in work area / زمن العمل المتاح في منطقة العمل</small><strong id="workTime">—</strong></div>
+<div class="result"><small>Estimated fuel at airport overhead / الوقود التقديري عند الوصول فوق المطار</small><strong id="arrivalFuel">—</strong></div>
+<div class="result"><small>Required overhead reserve / احتياطي الوقود المطلوب فوق المطار</small><strong id="reserveResult">50 L</strong></div>
+</div>
+<div id="missionStatus" class="status warn">Enter work coordinates and takeoff fuel quantity to calculate the mission estimate. Default fuel flow is 20 L/hour.</div>
+<div class="breakdown" id="missionBreakdown"></div>
+</section>
+
+<div class="notice"><b>Important operational limitation / تنبيه تشغيلي مهم:</b> This is a preliminary straight-line planning estimate only. / هذا تقدير مبدئي للتخطيط باستخدام المسافة المباشرة فقط. It does not calculate wind, routing/airspace restrictions, climb/descent, taxi, takeoff/landing fuel, manoeuvring, holding, diversions, unusable fuel, or regulatory/company reserves. The 50 L overhead target is only the user-entered target and is not a determination that it is an adequate legal or safe reserve. Verify all weights, fuel flows, performance, route, weather and reserves against the current approved AFM/POH, operational procedures and qualified flight-planning authority. Do not use this calculator as the sole basis for dispatch or flight decisions.</div>
+
+<div class="actions"><button class="reset" id="reset" type="button">Reset calculation / إعادة ضبط الحساب</button><button class="print" id="print" type="button">Print result / طباعة النتيجة</button></div>
+<div class="footer">Aircraft empty weights and airport data are entered from the supplied information. Missing aircraft weights remain unavailable. Check all source data before use.</div>
+</section>
+</main>
+<script>
+const aircraftWeights = {
+"4901":946.3,"4903":958.4,"4904":916.5,"4905":955,"4907":918.5,"4908":null,"4909":914,"4910":921,"4911":921,"4912":969,
+"4913":958.4,"4914":921,"4916":910,"4917":917,"4918":912,"4923":null,"4924":954,"4925":951,"4926":null,"4927":959,
+"4928":963,"4929":961.5,"4930":950,"4931":960,"4932":959,"4933":952.5,"4934":961,"4935":964.9,"4936":959,"4937":957,"4938":953
+};
+const airports={
+siwa:{name:"Siwa Airport",lat:29+33/60+54.1/3600,lon:25+35/60+58.3/3600,mtow:1190,display:"N 29 33 54.1 · E 025 35 58.3"},
+miliz:{name:"Al-Milize Airport",lat:30+25/60+10/3600,lon:33+8/60+30/3600,mtow:1180,display:"N 30 25 10 · E 033 08 30"},
+owainat:{name:"East Oweinat Airport",lat:22+35/60,lon:28+42/60+58/3600,mtow:1185,display:"N 22 35 00 · E 028 42 58"}
+};
+const $=id=>document.getElementById(id);
+const aircraft=$("aircraft"),fuel=$("fuel"),fuelUnit=$("fuelUnit"),extra=$("extra");
+Object.entries(aircraftWeights).forEach(([n,w])=>{const o=document.createElement("option");o.value=n;o.textContent=n+" — "+(w===null?"Weight unavailable":w+" kg");aircraft.appendChild(o);});
+function fmt(n,d=2){return Number(n).toLocaleString("en-US",{minimumFractionDigits:d,maximumFractionDigits:d});}
+function duration(hours){if(!Number.isFinite(hours)||hours<0)return "—";let mins=Math.round(hours*60);return Math.floor(mins/60)+" h "+(mins%60)+" min";}
+function parseCoord(value,axis){
+ let s=value.trim().toUpperCase();if(!s)return NaN;
+ let hemi=(s.match(/[NSEW]/)||[])[0];let nums=s.match(/[+-]?(?:\d+(?:\.\d*)?|\.\d+)/g);
+ if(!nums)return NaN;
+ let v;
+ if(nums.length>=3){let deg=Number(nums[0]),min=Number(nums[1]),sec=Number(nums[2]);v=Math.abs(deg)+min/60+sec/3600;if(deg<0)v=-v;}
+ else v=Number(nums[0]);
+ if(hemi){v=Math.abs(v)*("SW".includes(hemi)?-1:1);}
+ if(axis==="lat"&&(Math.abs(v)>90||("NS".includes(hemi||"N")===false)))return NaN;
+ if(axis==="lon"&&Math.abs(v)>180)return NaN;
+ return v;
+}
+let pointCount=0;
+function addPoint(lat="",lon=""){
+ pointCount++;const id=pointCount,wrap=document.createElement("div");wrap.className="coords";wrap.dataset.point=id;
+ wrap.innerHTML=`<div class="field"><div class="coord-title">Point ${id} — Latitude / النقطة ${id} — خط العرض</div><input class="lat" aria-label="Point ${id} latitude" placeholder="e.g. N 29 33 54.1 / مثال: N 29 33 54.1" value="${lat}"></div><div class="field"><div class="coord-title">Point ${id} — Longitude / النقطة ${id} — خط الطول</div><input class="lon" aria-label="Point ${id} longitude" placeholder="e.g. E 025 35 58.3 / مثال: E 025 35 58.3" value="${lon}"></div><button class="remove" type="button">Remove / حذف</button>`;
+ wrap.querySelectorAll("input").forEach(x=>x.addEventListener("input",calculate));
+ wrap.querySelector(".remove").addEventListener("click",()=>{wrap.remove();renumber();calculate();});
+ $("waypoints").appendChild(wrap);renumber();
+}
+function renumber(){[...$("waypoints").children].forEach((el,i)=>{el.querySelector(".coord-title").textContent=`Point ${i+1} — Latitude`;el.querySelector(".lon").previousElementSibling.textContent=`Point ${i+1} — Longitude`;el.querySelector(".lat").setAttribute("aria-label",`Point ${i+1} latitude`);el.querySelector(".lon").setAttribute("aria-label",`Point ${i+1} longitude`);});}
+function getPoints(){
+ const arr=[];
+ for(const el of $("waypoints").children){
+  const latText=el.querySelector(".lat").value,lonText=el.querySelector(".lon").value;
+  if(!latText.trim()&&!lonText.trim())continue;
+  const lat=parseCoord(latText,"lat"),lon=parseCoord(lonText,"lon");
+  if(!Number.isFinite(lat)||!Number.isFinite(lon))return {error:"Check every coordinate: enter a valid latitude and longitude for each point. / راجع كل إحداثي: أدخل خط عرض وخط طول صحيحين لكل نقطة."};
+  arr.push({lat,lon});
+ }
+ return {points:arr};
+}
+function distanceNM(a,b){
+ const rad=x=>x*Math.PI/180,R=3440.065;
+ const dLat=rad(b.lat-a.lat),dLon=rad(b.lon-a.lon);
+ const q=Math.sin(dLat/2)**2+Math.cos(rad(a.lat))*Math.cos(rad(b.lat))*Math.sin(dLon/2)**2;
+ return 2*R*Math.asin(Math.sqrt(Math.min(1,q)));
+}
+function setStatus(id,kind,msg){const el=$(id);el.className="status "+kind;el.textContent=msg;}
+function calculate(){
+ const ap=airports[$("airport").value];$("airportCoords").textContent="Airport reference: "+ap.display;$("mtow").textContent=ap.mtow+" kg";$("mtowResult").textContent=ap.mtow+" kg";
+ const aw=aircraftWeights[aircraft.value],hasW=aircraft.value!==""&&aw!==null&&aw!==undefined;
+ const raw=Math.max(0,Number(fuel.value)||0),fuelL=fuelUnit.value==="liters"?raw:raw/0.76,fuelKg=fuelUnit.value==="liters"?raw*.76:raw,extraKg=Number(extra.value)||0;
+ const total=hasW?aw+fuelKg+extraKg:null,margin=total===null?null:ap.mtow-total;
+ $("aircraftWeight").textContent=hasW?fmt(aw)+" kg":"— kg";
+ $("totalKg").textContent=total===null?"—":fmt(total)+" kg";$("totalLb").textContent=total===null?"—":fmt(total*2.205)+" lb";
+ $("margin").textContent=margin===null?"—":fmt(margin)+" kg";
+ if(total===null){setStatus("weightStatus","warn","Select an aircraft with a confirmed empty weight and enter fuel. / اختر طائرة ذات وزن فارغ مؤكد وأدخل كمية الوقود.");$("weightBreakdown").textContent="";}
+ else if(margin<0){setStatus("weightStatus","bad","OVER MTOW by "+fmt(Math.abs(margin))+" kg. This exceeds the selected airport limit.");}
+ else setStatus("weightStatus","ok","Within the entered airport MTOW limit by "+fmt(margin)+" kg. This is not a full performance or loading approval.");
+ $("weightBreakdown").innerHTML=total===null?"":`Aircraft ${aircraft.value}: ${fmt(aw)} kg<br>Fuel: ${fmt(fuelKg)} kg (${fmt(fuelL)} L) · Additional item: ${fmt(extraKg)} kg<br><b>Total: ${fmt(total)} kg = ${fmt(total*2.205)} lb</b>`;
+ const parsed=getPoints(),speed=Number($("speed").value),burn=Number($("burn").value),takeoffBurn=Math.max(0,Number($("takeoffFuel").value)||0),reserve=Math.max(0,Number($("reserve").value)||0);
+ $("reserveResult").textContent=fmt(reserve)+" L";
+ if(parsed.error){["outbound","return","workTransit","totalTime","transitFuel","workTime","arrivalFuel"].forEach(id=>$(id).textContent="—");setStatus("missionStatus","bad",parsed.error);$("missionBreakdown").textContent="";return;}
+ const pts=parsed.points;
+ if(!pts.length||!(speed>0)||!(burn>0)||!(fuelL>0)){
+  ["outbound","return","workTransit","totalTime","transitFuel","workTime","arrivalFuel"].forEach(id=>$(id).textContent="—");
+  setStatus("missionStatus","warn","Enter at least one complete work coordinate, takeoff fuel and fuel consumption (L/hour). / أدخل إحداثيات كاملة لنقطة عمل واحدة على الأقل، وكمية وقود الإقلاع ومعدل استهلاك الوقود (لتر/ساعة).");$("missionBreakdown").textContent="";return;
+ }
+ const airport={lat:ap.lat,lon:ap.lon};
+ const outNM=distanceNM(airport,pts[0]),retNM=distanceNM(pts[pts.length-1],airport);
+ let betweenNM=0;for(let i=1;i<pts.length;i++)betweenNM+=distanceNM(pts[i-1],pts[i]);
+ const outH=outNM/speed,retH=retNM/speed,betweenH=betweenNM/speed,transitH=outH+betweenH+retH;
+ const transitFuel=transitH*burn,arrivalFuel=fuelL-takeoffBurn-transitFuel,workH=(fuelL-takeoffBurn-reserve-transitFuel)/burn;
+ $("outbound").textContent=fmt(outNM)+" NM · "+duration(outH);
+ $("return").textContent=fmt(retNM)+" NM · "+duration(retH);
+ $("workTransit").textContent=fmt(betweenNM)+" NM · "+duration(betweenH);
+ $("totalTime").textContent=duration(transitH+(workH>0?workH:0));
+ $("transitFuel").textContent=fmt(transitFuel)+" L";
+ $("workTime").textContent=workH>=0?duration(workH):"Not available";
+ $("arrivalFuel").textContent=fmt(arrivalFuel)+" L";
+ $("missionBreakdown").innerHTML=`Route estimate: ${fmt(outNM+betweenNM+retNM)} NM total at ${fmt(speed)} knots.<br>Takeoff operation fuel allowance = ${fmt(takeoffBurn)} L (deducted once).<br>Transit time = ${duration(transitH)}. Estimated en-route fuel = ${fmt(transitH)} h × ${fmt(burn)} L/h = ${fmt(transitFuel)} L.<br>Available work time = (takeoff fuel ${fmt(fuelL)} L − takeoff allowance ${fmt(takeoffBurn)} L − en-route fuel ${fmt(transitFuel)} L − overhead target ${fmt(reserve)} L) ÷ ${fmt(burn)} L/h.`;
+ if(arrivalFuel<reserve||workH<0)setStatus("missionStatus","bad",`INSUFFICIENT FUEL: after estimated transit, only ${fmt(arrivalFuel)} L remains at overhead, below the ${fmt(reserve)} L target. No work time is available.`);
+ else setStatus("missionStatus","ok",`Estimated work-area time: ${duration(workH)}. The simplified calculation leaves ${fmt(reserve)} L at airport overhead, before unmodelled operational factors.`);
+}
+[aircraft,fuel,fuelUnit,extra,$("airport"),$("speed"),$("burn"),$("reserve")].forEach(el=>el.addEventListener("input",calculate));
+$("airport").addEventListener("change",calculate);
+$("addPoint").addEventListener("click",()=>{addPoint();calculate();});
+$("reset").addEventListener("click",()=>{aircraft.value="";fuel.value="";fuelUnit.value="liters";extra.value="0";$("airport").value="siwa";$("speed").value="78";$("burn").value="20";$("takeoffFuel").value="30";$("reserve").value="50";$("waypoints").innerHTML="";pointCount=0;addPoint();calculate();});
+$("print").addEventListener("click",()=>window.print());
+addPoint();calculate();
+</script>
+
+<script>
+if ("serviceWorker" in navigator) {
+  window.addEventListener("load", () => {
+    navigator.serviceWorker.register("./service-worker.js").catch(err => {
+      console.warn("Offline installation support could not be registered:", err);
+    });
+  });
+}
+</script>
+
+</body>
+</html>
