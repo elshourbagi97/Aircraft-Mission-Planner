@@ -1,32 +1,41 @@
-const CACHE_NAME = "aircraft-planner-v2";
+const CACHE_NAME = "aircraft-planner-v3";
+
+// استخراج مسار المشروع تلقائياً (سواء كان على الجذر أو داخل مجلد فرعي في GitHub Pages)
+const BASE_PATH = new URL('.', self.registration.scope).pathname;
+
 const APP_FILES = [
-  "./",
-  "./index.html",
-  "./manifest.webmanifest",
-  "./icons/icon-192.png",
-  "./icons/icon-512.png"
+  BASE_PATH,
+  BASE_PATH + "index.html",
+  BASE_PATH + "manifest.webmanifest",
+  BASE_PATH + "icon.svg"
 ];
 
 self.addEventListener("install", event => {
   event.waitUntil(
-    caches.open(CACHE_NAME)
-      .then(cache => cache.addAll(APP_FILES))
-      .then(() => self.skipWaiting())
+  caches.open(CACHE_NAME)
+    .then(cache => {
+      // استخدام Promise.allSettled لضمان عدم توقف التثبيت حتى لو ملف واحد لم يتم العثور عليه
+      return Promise.allSettled(
+        APP_FILES.map(file => cache.add(file).catch(err => console.log("Failed to cache:", file)))
+      );
+    })
+    .then(() => self.skipWaiting())
   );
 });
 
 self.addEventListener("activate", event => {
   event.waitUntil(
-    caches.keys()
-      .then(keys => Promise.all(
-        keys.filter(key => key !== CACHE_NAME).map(key => caches.delete(key))
-      ))
-      .then(() => self.clients.claim())
+  caches.keys()
+    .then(keys => Promise.all(
+      keys.filter(key => key !== CACHE_NAME).map(key => caches.delete(key))
+    ))
+    .then(() => self.clients.claim())
   );
 });
 
 self.addEventListener("fetch", event => {
   if (event.request.method !== "GET") return;
+  
   event.respondWith(
     caches.match(event.request).then(cached => {
       if (cached) return cached;
@@ -36,7 +45,7 @@ self.addEventListener("fetch", event => {
           caches.open(CACHE_NAME).then(cache => cache.put(event.request, copy));
         }
         return response;
-      }).catch(() => caches.match("./index.html"));
+      }).catch(() => caches.match(BASE_PATH + "index.html"));
     })
   );
 });
